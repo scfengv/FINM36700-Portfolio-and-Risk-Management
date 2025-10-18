@@ -45,6 +45,7 @@ def Plot_CorrHeatmap(returns: pd.DataFrame):
         square = True, linewidths = 1
     )
     plt.title("Correlation Matrix")
+    plt.tight_layout()
     plt.show()
     
 def Calc_TangencyWeights(excessReturns: pd.DataFrame, annualizedFactor: int):
@@ -54,7 +55,7 @@ def Calc_TangencyWeights(excessReturns: pd.DataFrame, annualizedFactor: int):
     Also for Mean-Variance
 
     Args:
-        excessReturns (pd.DataFrame)
+        excessReturns (pd.DataFrame):
         annualizedFactor (int): monthly = 12; weekly = 52; daily = 252
         
     Returns:
@@ -137,15 +138,17 @@ def Calc_MaxDrawdown(returns) -> float:
 
 def Calc_SkewKurt(returns) -> tuple[float, float]:
     """
+    Skewness and Kurtosis
+    
     Args:
-        returns (pd.DataFrame, pd.Series)
+        returns (pd.DataFrame, pd.Series):
 
     Returns:
-        tuple[float, float]: (skew, kurt)
+        Tuple: (Skewness, Kurtosis)
     """
     return (returns.skew(), returns.kurt())
 
-def Calc_Beta_TreynorRatio_InfoRatio(returns, benchmark: pd.Series, annualizedFactor: int) -> tuple[list[float], list[float], list[float]]:
+def Calc_Beta_TreynorRatio_InfoRatio_RSquared_TrackingError(y: pd.Series, x: pd.Series or pd.DataFrame, annualized_factor: int):
     """
     beta: y_hat = alpha + (beta1 * benchmark) + residual
      
@@ -154,33 +157,60 @@ def Calc_Beta_TreynorRatio_InfoRatio(returns, benchmark: pd.Series, annualizedFa
     Information Ratio = alpha / std(residual)
     
     Args:
-        returns (pd.DataFrame, pd.Series)
-        benchmark (pd.Series): Market data (e.g. S&P 500)
-        annualizedFactor (int): monthly = 12; weekly = 52; daily = 252
+        y (pd.Series): The dependent variable (e.g., asset return).
+        x (pd.Series or pd.DataFrame): The independent variable(s).
+                                     - pd.Series for simple regression (Case 1).
+                                     - pd.DataFrame for multiple regression (Case 2).
+        annualized_factor (int): e.g., monthly = 12
         
     Returns:
-        Beta (list[float]), Treynor Ratio (list[float]), Information Ratio (list[float])
+        Tuple: 
+        - Case 1 (Simple): (Beta, Treynor Ratio, Information Ratio, R squared, Tracking Error)
+        - Case 2 (Multiple): (Betas, None, Information Ratio, R squared, Tracking Error)
     """
-    
-    marketBeta, treynorRatio, infoRatio = list(), list(), list()
-    x = sm.add_constant(benchmark)
-    
-    if isinstance(returns, pd.Series):
-        returns = returns.to_frame()
-    
-    for col in returns.columns:
-        y = returns[col].ffill()
-        model = sm.OLS(y, x).fit()
-        
-        alpha, beta = model.params
-        epsilon = model.resid.std() * np.sqrt(annualizedFactor)
-        
-        treynor = y.mean() * annualizedFactor / beta
-        info = alpha / epsilon
+    y, x = y.ffill(), x.ffill()
+    x_const = sm.add_constant(x)
+    model = sm.OLS(y, x_const).fit()
 
-        marketBeta.append(beta)
-        treynorRatio.append(treynor)
-        infoRatio.append(info)
+    alpha_monthly = model.params["const"]
+    alpha_annual = alpha_monthly * annualized_factor
+    
+    # Tracking Error
+    epsilon_monthly = model.resid.std()
+    epsilon_annual = epsilon_monthly * np.sqrt(annualized_factor)
+    
+    info_ratio = alpha_annual / epsilon_annual
+
+    # Case 1: Simple Regression
+    if isinstance(x, pd.Series):
+        beta = model.params.drop("const").iloc[0]
+        y_mean_annual = y.mean() * annualized_factor
+        treynor_ratio = y_mean_annual / beta
+        r_squared = model.rsquared
         
-    return (marketBeta, treynorRatio, infoRatio)
+        return (beta, treynor_ratio, info_ratio, r_squared, epsilon_annual)
+    
+    # Case 2: Multiple Regression
+    else:
+        betas = model.params.drop("const") 
+        r_squared = model.rsquared
         
+        # Treynor Ratio is not well-defined for multiple betas.
+        return (betas, None, info_ratio, r_squared, epsilon_annual)
+
+def Calc_CumulativeReturn(returns: pd.Series) -> list[float]:
+    """
+    Cumulative Return for [0.1, -0.05, 0.02]
+    
+    `(1 + returns).cumprod()`: [1.1, 1.045, 1.0659]
+    
+    `(1 + returns).prod()`: 1.0659
+
+    Args:
+        returns (pd.Series):
+
+    Returns:
+        list[float]: a time series of cumulative returns
+    """
+    return 100 * (1 + returns).cumprod()
+
