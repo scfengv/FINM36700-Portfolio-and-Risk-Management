@@ -1,7 +1,10 @@
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import statsmodels.api as sm
 import matplotlib.pyplot as plt
+
+from scipy.optimize import minimize
 
 def Calc_Var(returns: pd.Series):
     return returns.quantile(0.05)
@@ -118,7 +121,7 @@ def Calc_LeverageRatio_Monthly(returns: pd.DataFrame, weights: pd.Series, target
     leverageRatio = targetReturn / currentMean
     return leverageRatio
 
-def Calc_MaxDrawdown(returns: pd.DataFrame) -> float:
+def Calc_MaxDrawdown(returns) -> float:
     """
     Args:
         returns (pd.DataFrame, pd.Series)
@@ -126,4 +129,58 @@ def Calc_MaxDrawdown(returns: pd.DataFrame) -> float:
     Returns:
         Max Drawdown
     """
+    cumulative = (1 + returns).cumprod()
+    peak = cumulative.cummax()
+    drawdown = (cumulative - peak) / peak
+    maxDrawdown = drawdown.min()
+    return maxDrawdown
+
+def Calc_SkewKurt(returns) -> tuple[float, float]:
+    """
+    Args:
+        returns (pd.DataFrame, pd.Series)
+
+    Returns:
+        tuple[float, float]: (skew, kurt)
+    """
+    return (returns.skew(), returns.kurt())
+
+def Calc_Beta_TreynorRatio_InfoRatio(returns, benchmark: pd.Series, annualizedFactor: int) -> tuple[list[float], list[float], list[float]]:
+    """
+    beta: y_hat = alpha + (beta1 * benchmark) + residual
+     
+    Treynor Ratio = Mean of Excess Return / beta
     
+    Information Ratio = alpha / std(residual)
+    
+    Args:
+        returns (pd.DataFrame, pd.Series)
+        benchmark (pd.Series): Market data (e.g. S&P 500)
+        annualizedFactor (int): monthly = 12; weekly = 52; daily = 252
+        
+    Returns:
+        Beta (list[float]), Treynor Ratio (list[float]), Information Ratio (list[float])
+    """
+    
+    marketBeta, treynorRatio, infoRatio = list(), list(), list()
+    x = sm.add_constant(benchmark)
+    
+    if isinstance(returns, pd.Series):
+        returns = returns.to_frame()
+    
+    for col in returns.columns:
+        y = returns[col].ffill()
+        model = sm.OLS(y, x).fit()
+        
+        alpha, beta = model.params
+        epsilon = model.resid.std() * np.sqrt(annualizedFactor)
+        
+        treynor = y.mean() * annualizedFactor / beta
+        info = alpha / epsilon
+
+        marketBeta.append(beta)
+        treynorRatio.append(treynor)
+        infoRatio.append(info)
+        
+    return (marketBeta, treynorRatio, infoRatio)
+        
