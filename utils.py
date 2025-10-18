@@ -118,3 +118,12 @@ def Calc_LeverageRatio_Monthly(returns: pd.DataFrame, weights: pd.Series, target
     leverageRatio = targetReturn / currentMean
     return leverageRatio
 
+def Calc_MaxDrawdown(returns: pd.DataFrame) -> float:
+    """
+    Args:
+        returns (pd.DataFrame, pd.Series)
+
+    Returns:
+        Max Drawdown
+    """
+    
