@@ -87,15 +87,31 @@ def Calc_RiskParityWeights(returns: pd.DataFrame, annualizedFactor: int):
     invVol = 1 / vol
     return np.array(invVol / invVol.sum())
 
-def Calc_MeanStdSharpe(returns: pd.DataFrame, weights: pd.Series, annualizedFactor: int) -> tuple[float, float, float]:
+def Calc_MeanStdSharpe_Stock(returns: pd.Series or pd.DataFrame, annualized_factor: int) -> tuple[float, float, float]:
+    """
+    Mean, STD, Sharpe of Single Stock
+    
+    Args:
+        returns (pd.Seriesorpd.DataFrame): Stocks
+        annualized_factor (int): monthly = 12; weekly = 52; daily = 252
+
+    Returns:
+        tuple: (mean, std, sharpe)
+    """
+    mean = returns.mean() * annualized_factor
+    std = returns.std() * np.sqrt(annualized_factor)
+    sharpe = mean / std
+    return (mean, std, sharpe)
+
+def Calc_MeanStdSharpe_Portfolio(returns: pd.DataFrame, weights: pd.Series, annualizedFactor: int) -> tuple[float, float, float]:
     """
     Args:
-        returns (pd.DataFrame)
-        weights (pd.Series)
+        returns (pd.DataFrame): Portfolio
+        weights (pd.Series):
         annualizedFactor (int): monthly = 12; weekly = 52; daily = 252
 
     Returns:
-        tuple[float, float, float]: (mean, std, sharpe)
+        tuple: (mean, std, sharpe)
     """
     portfolioReturn = returns @ weights
     mean = portfolioReturn.mean() * annualizedFactor
@@ -122,19 +138,19 @@ def Calc_LeverageRatio_Monthly(returns: pd.DataFrame, weights: pd.Series, target
     leverageRatio = targetReturn / currentMean
     return leverageRatio
 
-def Calc_MaxDrawdown(returns) -> float:
+def Calc_MaxDrawdown(returns) -> tuple[float, list[float]]:
     """
     Args:
-        returns (pd.DataFrame, pd.Series)
+        returns (pd.DataFrame, pd.Series):
 
     Returns:
-        Max Drawdown
+        Tuple: (Max Drawdown, Drawdown (Time Series))
     """
     cumulative = (1 + returns).cumprod()
     peak = cumulative.cummax()
     drawdown = (cumulative - peak) / peak
     maxDrawdown = drawdown.min()
-    return maxDrawdown
+    return (maxDrawdown, drawdown)
 
 def Calc_SkewKurt(returns) -> tuple[float, float]:
     """
