@@ -77,7 +77,7 @@ def Calc_RiskParityWeights(returns: pd.DataFrame, annualizedFactor: int):
     w(RP) = 1 / var
 
     Args:
-        returns (pd.DataFrame)
+        returns (pd.DataFrame):
         annualizedFactor (int): monthly = 12; weekly = 52; daily = 252
 
     Returns:
@@ -124,8 +124,8 @@ def Calc_LeverageRatio_Monthly(returns: pd.DataFrame, weights: pd.Series, target
     Calculate Leverage Ratio of portfolio to meet "Monthly" Target Return
 
     Args:
-        returns (pd.DataFrame)
-        weights (pd.Series)
+        returns (pd.DataFrame):
+        weights (pd.Series):
         targetReturn (float): per month
         annualizedFactor (int): monthly = 12; weekly = 52; daily = 252
         
