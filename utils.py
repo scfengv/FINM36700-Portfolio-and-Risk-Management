@@ -172,6 +172,8 @@ def Calc_Beta_TreynorRatio_InfoRatio_RSquared_TrackingError(y: pd.Series, x: pd.
     
     Information Ratio = alpha / std(residual)
     
+    Return Model for prediction and other information.
+    
     Args:
         y (pd.Series): The dependent variable (e.g., asset return).
         x (pd.Series or pd.DataFrame): The independent variable(s).
@@ -180,9 +182,9 @@ def Calc_Beta_TreynorRatio_InfoRatio_RSquared_TrackingError(y: pd.Series, x: pd.
         annualized_factor (int): e.g., monthly = 12
         
     Returns:
-        Tuple: 
-        - Case 1 (Simple): (Beta, Treynor Ratio, Information Ratio, R squared, Tracking Error)
-        - Case 2 (Multiple): (Betas, None, Information Ratio, R squared, Tracking Error)
+        Tuple: (Beta, Treynor_Ratio, Information_Ratio, Rsquared, Tracking_Error, Model)
+        - Case 1 (Simple): (Beta, Treynor_Ratio, Information_Ratio, Rsquared, Tracking_Error, Model)
+        - Case 2 (Multiple): (Betas, None, Information_Ratio, Rsquared, Tracking_Error, Model)
     """
     y, x = y.ffill(), x.ffill()
     x_const = sm.add_constant(x)
@@ -204,7 +206,7 @@ def Calc_Beta_TreynorRatio_InfoRatio_RSquared_TrackingError(y: pd.Series, x: pd.
         treynor_ratio = y_mean_annual / beta
         r_squared = model.rsquared
         
-        return (beta, treynor_ratio, info_ratio, r_squared, epsilon_annual)
+        return (beta, treynor_ratio, info_ratio, r_squared, epsilon_annual, model)
     
     # Case 2: Multiple Regression
     else:
@@ -212,7 +214,7 @@ def Calc_Beta_TreynorRatio_InfoRatio_RSquared_TrackingError(y: pd.Series, x: pd.
         r_squared = model.rsquared
         
         # Treynor Ratio is not well-defined for multiple betas.
-        return (betas, None, info_ratio, r_squared, epsilon_annual)
+        return (betas, None, info_ratio, r_squared, epsilon_annual, model)
 
 def Calc_CumulativeReturn(returns: pd.Series) -> list[float]:
     """
@@ -230,3 +232,11 @@ def Calc_CumulativeReturn(returns: pd.Series) -> list[float]:
     """
     return 100 * (1 + returns).cumprod()
 
+def Plot_Drawdown(returns: pd.Series):
+    maxDrawdown, drawdown = Calc_MaxDrawdown(returns)
+    plt.figure(figsize = (12, 10))
+    plt.plot(drawdown)
+    plt.title("Drawdown")
+    plt.ylabel("Returns")
+    plt.xlabel("Date")
+    plt.show()
