@@ -6,11 +6,22 @@ import matplotlib.pyplot as plt
 
 from scipy.optimize import minimize
 
-def Calc_Var(returns: pd.Series):
-    return returns.quantile(0.05)
+def Calc_Var(returns: pd.Series, q = 0.05) -> float:
+    """
+    Calculating Value at Risk
 
-def Calc_CVar(returns: pd.Series):
-    return returns[returns <= Calc_Var(returns)].mean()
+    Args:
+        returns (pd.Series):
+        q (float, optional): Var Quantile, Defaults to 0.05.
+
+    Returns:
+        VaR (float):
+    """
+    
+    return returns.quantile(q)
+
+def Calc_CVar(returns: pd.Series, q = 0.05):
+    return returns[returns <= Calc_Var(returns, q)].mean()
 
 def Calc_LevelReturns(returns: pd.Series, annualizedFactor: int) -> float:
     """
@@ -34,7 +45,7 @@ def Calc_LogReturns(returns: pd.Series, annualizedFactor: int) -> float:
     Returns:
         Annualized mean of Log Return
     """
-    logReturns = np.log1p(1 + returns)
+    logReturns = np.log1p(returns)
     return logReturns.mean() * annualizedFactor
 
 def Plot_CorrHeatmap(returns: pd.DataFrame):
@@ -209,7 +220,7 @@ def Calc_Beta_TreynorRatio_InfoRatio_RSquared_TrackingError(y: pd.Series, x: pd.
         - Case 1 (Simple): (Beta, Treynor_Ratio, Information_Ratio, Rsquared, Tracking_Error, Model)
         - Case 2 (Multiple): (Betas, None, Information_Ratio, Rsquared, Tracking_Error, Model)
     """
-    y, x = y.ffill(), x.ffill()
+    y, x = y.dropna(), x.dropna()
     x_const = sm.add_constant(x)
     model = sm.OLS(y, x_const).fit()
 
@@ -239,7 +250,7 @@ def Calc_Beta_TreynorRatio_InfoRatio_RSquared_TrackingError(y: pd.Series, x: pd.
         # Treynor Ratio is not well-defined for multiple betas.
         return (betas, None, info_ratio, r_squared, epsilon_annual, model)
 
-def Calc_CumulativeReturn(returns: pd.Series) -> list[float]:
+def Calc_CumulativeReturn(returns: pd.Series) -> pd.Series:
     """
     Cumulative Return for [0.1, -0.05, 0.02]
     
