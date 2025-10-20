@@ -213,7 +213,7 @@ def Calc_Beta_TreynorRatio_InfoRatio_RSquared_TrackingError(y: pd.Series, x: pd.
         x (pd.Series or pd.DataFrame): The independent variable(s).
                                      - pd.Series for simple regression (Case 1).
                                      - pd.DataFrame for multiple regression (Case 2).
-        annualized_factor (int): e.g., monthly = 12
+        annualized_factor (int): monthly = 12; weekly = 52; daily = 252
         
     Returns:
         Tuple: (Beta, Treynor_Ratio, Information_Ratio, Rsquared, Tracking_Error, Model)
