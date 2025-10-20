@@ -64,9 +64,32 @@ def Calc_TangencyWeights(excessReturns: pd.DataFrame, annualizedFactor: int):
     covMat = excessReturns.cov() * annualizedFactor # Covariance matrix * Annual factor
     covInv = np.linalg.inv(covMat) # Sigma^(-1)
     mu = excessReturns.mean() * annualizedFactor # Annualized Mean Excess Return
-    scaling = 1 / (np.transpose(np.ones(len(excessReturns.columns))) @ covInv @ mu)
-    tangencyWeights = scaling * (covInv @ mu)
-    return tangencyWeights
+    # scaling = 1 / (np.transpose(np.ones(len(excessReturns.columns))) @ covInv @ mu)
+    # tangencyWeights = scaling * (covInv @ mu)
+    unscaled = covInv @ mu
+    scaledWeights = unscaled / np.sum(unscaled)
+    return scaledWeights
+
+def Calc_RegWeights(excessReturns: pd.DataFrame, annualizedFactor: int):
+    """
+    W_REG = scaling * (Inverse of Regularized Covariance Matrix @ Annualized Excess Return)
+    
+    Regularized Covariance Matrix = (Covariance Matrix + Diagoal Variance Matrix) / 2
+    
+    Args:
+        excessReturns (pd.DataFrame):
+        annualizedFactor (int): monthly = 12; weekly = 52; daily = 252
+    
+    Returns:
+        Regularized Weights
+    """
+    covMat = excessReturns.cov() * annualizedFactor
+    sigmaD = np.diag(np.diag(covMat))
+    sigmaHat = (covMat + sigmaD) / 2
+    meanReturns = excessReturns.mean() * annualizedFactor
+    unscaledWeights = np.linalg.inv(sigmaHat) @ meanReturns
+    scaledWeights = unscaledWeights / np.sum(unscaledWeights)
+    return scaledWeights
 
 def Calc_EqWeights(returns: pd.DataFrame):
     numAsset = len(returns.columns)
